@@ -54,17 +54,19 @@ The player's hero is real progress built over months. Losing it is the worst pos
 | Trial of Strength | Exercise | 30 min | Strength | 70 | 40s |
 | Stillness of Mind | Meditation | 10 min | Intellect | 50 | 30s |
 | Waters of the Spring | Water | 2 L | Spirit | 40 | 25s |
+| The Alchemist's Tonic | Vitamins (checkbox) | — | Stamina | 30 | 20s |
 | Vow of the Clean Hearth | No junk food (checkbox) | — | Stamina | 60 | 30s |
 
+- Checkbox quests can set `doLabel` / `undoLabel` for their buttons (default "Vow kept today" / "I broke the vow").
 - Players enter values by hand (+chips or "Set total"); the browser cannot read Apple Health. Goals are editable on the Hero tab.
 - Completing a quest: XP, gold, +1 energy (cap 10), +1 permanent trained stat. Un-completing reverses all of it.
 - **Streaks:** consecutive days on the same quest give +10% rewards per day, up to +50%.
-- **Champion's Cache:** all 5 quests in a day → +150 XP, 1 gold, +2 energy.
+- **Champion's Cache:** all 6 quests in a day → +150 XP, 1 gold, +2 energy.
 - Day history (quests done per day) is kept for 60 days; lifetime totals for steps, minutes, water.
 
 **Units:** metric only (litres, millilitres, minutes, km if distance is added). Currency is copper; 100c = 1s, 100s = 1g.
 
-**Levels:** XP to go from level L to L+1 is `100 × L^1.5`. Max level 60. A day of all quests (~430 XP with cache) gets a new hero to level 10 in about 3–4 weeks.
+**Levels:** XP to go from level L to L+1 is `100 × L^1.5`. Max level 60. A day of all quests (~460 XP with cache) gets a new hero to level 10 in about 3–4 weeks.
 
 **Classes:** Warrior, Mage, Ranger, Priest. Each has base stats, per-level growth, and stat weights that turn stats into **battle power**. Stats = base + growth × (level − 1) + trained + gear.
 

@@ -80,8 +80,8 @@ function renderQuest(q) {
         : `<div class="chips">${q.chips.map(v => `<button type="button" class="btn" data-a="add" data-v="${q.id}" data-n="${v}">${q.chipLabel(v)}</button>`).join('')}<button type="button" class="btn ghost" data-a="setopen" data-v="${q.id}">Set total</button></div>`}`;
   } else {
     body = p.done
-      ? `<div class="chips"><button type="button" class="btn ghost" data-a="uncheck" data-v="${q.id}">I broke the vow</button></div>`
-      : `<div class="chips"><button type="button" class="btn primary" data-a="check" data-v="${q.id}">Vow kept today</button></div>`;
+      ? `<div class="chips"><button type="button" class="btn ghost" data-a="uncheck" data-v="${q.id}">${q.undoLabel || 'I broke the vow'}</button></div>`
+      : `<div class="chips"><button type="button" class="btn primary" data-a="check" data-v="${q.id}">${q.doLabel || 'Vow kept today'}</button></div>`;
   }
   return `<article class="panel quest ${p.done ? 'done' : ''}">
     <div class="q-top"><div class="qicon" aria-hidden="true">${art(QUEST_ART[q.id])}<span class="badge">${p.done ? '✓' : '!'}</span></div>

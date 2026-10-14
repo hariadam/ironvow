@@ -71,6 +71,7 @@ const QUESTS = [
   { id: 'exercise', name: 'Trial of Strength', text: g => `Train hard for ${g} minutes.`, type: 'num', chips: [5, 10, 15], chipLabel: v => `+${v} min`, fmt: v => `${v} min`, unit: 'min', stat: 'str', xp: 70, c: 4000, def: 30 },
   { id: 'meditate', name: 'Stillness of Mind', text: g => `Meditate for ${g} minutes.`, type: 'num', chips: [5, 10], chipLabel: v => `+${v} min`, fmt: v => `${v} min`, unit: 'min', stat: 'int', xp: 50, c: 3000, def: 10 },
   { id: 'water', name: 'Waters of the Spring', text: g => `Drink ${fmtL(g)} of water.`, type: 'num', chips: [250, 500], chipLabel: v => `+${v} ml`, fmt: v => fmtL(v), unit: 'ml', stat: 'spi', xp: 40, c: 2500, def: 2000 },
+  { id: 'vitamins', name: "The Alchemist's Tonic", text: () => 'Take your daily vitamins.', type: 'check', doLabel: 'Taken today', undoLabel: 'Not taken', stat: 'sta', xp: 30, c: 2000 },
   { id: 'nojunk', name: 'Vow of the Clean Hearth', text: () => 'Eat no junk food or sweets today. Claim it once the day is done and the vow held.', type: 'check', stat: 'sta', xp: 60, c: 3000 },
 ];
 const Q = Object.fromEntries(QUESTS.map(q => [q.id, q]));

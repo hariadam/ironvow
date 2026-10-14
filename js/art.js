@@ -32,6 +32,7 @@ const DRAW = {
   lotus: () => `<circle cx="20" cy="20" r="15" fill="#c98ae8" opacity=".15"/><path d="M20 7c4 5 5 11 0 20-5-9-4-15 0-20z" fill="#e7a7ee"/><path d="M8 13c6 1 10 6 12 14-8-1-12-6-12-14zM32 13c-6 1-10 6-12 14 8-1 12-6 12-14z" fill="#c983dd"/><path d="M4 22c6-1 12 2 16 5-6 3-12 2-16-5zM36 22c-6-1-12 2-16 5 6 3 12 2 16-5z" fill="#a965c4"/><path d="M8 32c8-3 16-3 24 0" stroke="#5fc9ea" stroke-width="1.6" fill="none" opacity=".7"/>`,
   droplet: () => `<path d="M20 4c6 9 12 15 12 22a12 12 0 0 1-24 0c0-7 6-13 12-22z" fill="#4aa6ea"/><path d="M20 4c6 9 12 15 12 22a12 12 0 0 1-12 12z" fill="#2f7fc4"/>${hi('M13 25c0-4 2-7 5-11-1 4-2 7-2 11z', 0.55)}`,
   apple: () => `<path d="M20 12c-3-3-13-2-13 9 0 8 6 15 10 15 2 0 2-1 3-1s1 1 3 1c4 0 10-7 10-15 0-11-10-12-13-9z" fill="#5fbf44"/><path d="M20 12c3-3 13-2 13 9 0 8-6 15-10 15-2 0-2-1-3-1z" fill="#3f9a2e"/><path d="M20 12c0-4 1-7 3-8" stroke="${M.woodD}" stroke-width="2" fill="none"/><path d="M22 8c3-4 8-4 10-2-3 3-7 3-10 2z" fill="#7fd45a"/>${hi('M11 18c1-3 3-4 5-4-2 2-3 4-3 7z', 0.5)}`,
+  flask: () => `<circle cx="20" cy="25" r="15" fill="#f2a33a" opacity=".15"/><path d="M17 7h6v7.4A11 11 0 1 1 17 14.4z" fill="#cfe6ef" fill-opacity=".2" stroke="#cfe6ef" stroke-width="1.4"/><path d="M9 25h22a11 11 0 0 1-22 0z" fill="#f2a33a"/><path d="M12 30a8 8 0 0 0 7 5" stroke="#ffd98a" stroke-width="1.4" fill="none" opacity=".7"/><circle cx="24" cy="29" r="1.5" fill="#ffe3a8"/><circle cx="18.5" cy="32" r="1" fill="#ffe3a8"/><rect x="15.5" y="3" width="9" height="5" rx="1.2" fill="${M.wood}"/>${hi('M12.5 20a9 9 0 0 1 4.5-3.5v3a6 6 0 0 0-2.5 2.5z', 0.5)}`,
   warrior: () => `<path d="M20 4l13 5v10c0 9-6 15-13 18C13 34 7 28 7 19V9z" fill="${M.steelX}" stroke="${M.gold}" stroke-width="2"/><path d="M12 28L28 10M28 28L12 10" stroke="${M.steel}" stroke-width="2.6" stroke-linecap="round"/><path d="M10 25l5 5M30 25l-5 5" stroke="${M.gold}" stroke-width="2.4" stroke-linecap="round"/>`,
   mage: () => `<circle cx="20" cy="22" r="13" fill="#ff7a3a" opacity=".18"/><path d="M20 4c2 6 10 9 10 19a10 10 0 0 1-20 0c0-5 3-8 5-10 0 4 2 6 3 6 0-6-1-10 2-15z" fill="#ff8c3a"/><path d="M20 15c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-3-1-5 1-8z" fill="#ffd46a"/><circle cx="20" cy="28" r="2.4" fill="#fff6d0"/>`,
   ranger: () => `<path d="M20 5c9 4 13 13 10 24-7-1-13-6-14-14 0-4 2-7 4-10z" fill="#4f9a45"/><path d="M20 5c-2 9 0 17 10 24" stroke="#2d6227" stroke-width="1.4" fill="none"/><path d="M5 35L28 12" stroke="${M.bone}" stroke-width="2"/><path d="M28 12l-5 1 4-5z" fill="${M.steel}"/><path d="M5 35l2-5 2 3zM8 34l-1-4 3 2z" fill="${M.gold}"/>`,
@@ -50,7 +51,7 @@ const ICONS = {
   d6: ['plate', '#c8582a'], d7: ['fang', '#9fdcff'], d8: ['plate', '#6b3aa0'],
 };
 const itemArt = id => art(...(ICONS[id] || ['gem', '#888']));
-const QUEST_ART = { steps: 'boot', exercise: 'dumbbell', meditate: 'lotus', water: 'droplet', nojunk: 'apple' };
+const QUEST_ART = { steps: 'boot', exercise: 'dumbbell', meditate: 'lotus', water: 'droplet', vitamins: 'flask', nojunk: 'apple' };
 
 // Zone banners: layered hills + a motif per zone, seeded so they never change
 const ZART = {
