@@ -1,15 +1,13 @@
-// ---------- Day rollover ----------
-function checkDay() { if (state && ensureDay()) { persist(); render(); } }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDay(); });
-setInterval(checkDay, 60000);
+// Startup. Everything else is reached from here: js/ui/app.js draws and handles taps, js/rules holds the
+// game rules, js/content the game data, js/save the save format. See CLAUDE.md.
 
-// ---------- Boot ----------
-state = loadLocal();
-if (state && ensureDay()) persist();
-render();
+import { start } from './ui/app.js';
 
-// Ask the browser not to clear our save when storage runs low (works best from the Home Screen).
-try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+start();
+window.ironvowStarted = true;   // tells js/boot-guard.js the game came up
+
+// Ask the browser not to clear the save when storage runs low (works best from the Home Screen).
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
 // Offline support: the service worker serves the last downloaded version when there is no connection.
 if ('serviceWorker' in navigator) {
