@@ -8,4 +8,6 @@ On iPhone: open the link in Safari → Share → **Add to Home Screen**.
 
 Your hero is saved on your device. Use **Hero → Backup → Copy save code** now and then, and keep the code somewhere safe.
 
-Built entirely with Claude. See [CLAUDE.md](CLAUDE.md) for how the game works.
+Built entirely with Claude. See [CLAUDE.md](CLAUDE.md) for how the game works and how the code is organised.
+
+Checks before publishing a change: `node --test` and `node tools/smoke.js`.
