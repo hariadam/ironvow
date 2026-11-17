@@ -31,6 +31,9 @@ export function newHero(name, classId, today) {
     history: {},                                                      // day key → quests done that day
     totals: Object.fromEntries(AMOUNT_QUESTS.map(q => [q.id, 0])),    // lifetime amounts
     wins: 0,
+    // The world map (rules/travel.js): where the hero stands, steps spent walking, the walks that uncovered
+    // land, and the tiles whose mob was beaten on `slain.day`.
+    map: { x: 0, y: 0, walked: 0, trail: [], slain: { day: today, at: [] } },
   };
 }
 

@@ -70,7 +70,44 @@ async function open(name, { width = 390, save = null } = {}) {
   return { page, shot, tab, fits, close: () => context.close() };
 }
 
-// 1. A brand new player: create a hero, do quests, visit every tab, fight.
+// ---- The world map. It is a canvas, so the test asks the game's own rules where things are, then taps there.
+
+// Where a tile is on screen, at the map's starting zoom with the hero in the middle.
+async function tileOnScreen(page, x, y) {
+  const box = await page.locator('#map').boundingBox();
+  const hero = await page.evaluate(async () => (await import('./js/ui/session.js')).session.hero.map);
+  return [box.x + box.width / 2 + (x - hero.x) * 8, box.y + box.height / 2 + (y - hero.y) * 8];
+}
+
+// Taps a tile, taps Walk, and waits for the walk to be played back.
+async function walkOnMap(page, x, y) {
+  await page.mouse.click(...await tileOnScreen(page, x, y));
+  await page.click('[data-a="walk"]');
+  await page.evaluate(async () => {
+    const { session } = await import('./js/ui/session.js');
+    while (session.ui.map.walk) await new Promise(next => requestAnimationFrame(next));
+  });
+}
+
+// The nearest wild mob the hero can walk to, or the walkable tile furthest from them if no mob is in view.
+const nearestMob = page => page.evaluate(async () => {
+  const { session } = await import('./js/ui/session.js');
+  const { foesInView } = await import('./js/rules/adventure.js');
+  const { inView, routeTo } = await import('./js/rules/travel.js');
+  const hero = session.hero;
+  // Tiles under the map's buttons (its top right corner) cannot be tapped without dragging the map first, so they are left out.
+  const hidden = (x, y) => x - hero.map.x > 11 && y - hero.map.y < 8;
+  const steps = (x, y) => (hidden(x, y) ? Infinity : routeTo(hero, x, y).steps || Infinity);
+  const mobs = foesInView(hero).map(({ x, y, foe }) => ({ x, y, name: foe.mob.name, steps: steps(x, y) })).filter(mob => mob.steps < Infinity);
+  if (mobs.length) return mobs.sort((a, b) => a.steps - b.steps)[0];
+  let far = null;
+  for (let y = hero.map.y - 20; y <= hero.map.y + 20; y++) for (let x = hero.map.x - 20; x <= hero.map.x + 20; x++) {
+    if (inView(hero, x, y) && steps(x, y) < Infinity && (!far || steps(x, y) > far.steps)) far = { x, y, steps: steps(x, y) };
+  }
+  return far;
+});
+
+// 1. A brand new player: create a hero, do quests, visit every tab, walk to a mob and fight it.
 {
   const { page, shot, tab, fits, close } = await open('new');
   await shot('1-create');
@@ -89,11 +126,29 @@ async function open(name, { width = 390, save = null } = {}) {
   await page.waitForTimeout(3000);
   await fits('quests'); await shot('2-quests');
   for (const id of ['hero', 'vendor', 'adventure']) { await tab(id); await fits(id); await shot(`3-${id}`); }
-  await page.click('[data-a="venture"]');
+  // Walk to a wild mob (moving on first on a day when none is near town) and fight it.
+  let mob = await nearestMob(page);
+  for (let tries = 0; !mob.name && tries < 4; tries++) { await walkOnMap(page, mob.x, mob.y); mob = await nearestMob(page); }
+  check(Boolean(mob.name), 'new: no wild mob could be found to fight');
+  await page.mouse.click(...await tileOnScreen(page, mob.x, mob.y));
+  check((await page.locator('.place h2').innerText()).toUpperCase() === mob.name.toUpperCase(), 'new: tapping a mob on the map did not show its card');
+  await shot('4-mob-picked', false);
+  await page.click('[data-a="walk"]');
+  await page.waitForSelector('[data-a="fight"]');
+  await fits('adventure after walking'); await shot('5-at-the-mob', false);
+  await page.click('[data-a="fight"]');
   await page.waitForSelector('[data-a="closeBattle"]');
-  await shot('4-battle', false);
+  await shot('6-battle', false);
+  await page.click('[data-a="closeBattle"]');
+  // Full screen, zoomed out, dragged.
+  await page.click('[data-a="mapFull"]');
+  await page.click('[data-a="mapZoom"][data-v="-1"]');
+  await page.mouse.move(120, 500); await page.mouse.down(); await page.mouse.move(180, 440, { steps: 4 }); await page.mouse.up();
+  await fits('full screen map'); await shot('7-full-screen', false);
+  await page.click('[data-a="mapFull"]');
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
   check(saved && saved.name === 'Adam' && saved.cls === 'ranger' && saved.energy === 4, 'new: the save does not match what was played');
+  check(saved.map.x === mob.x && saved.map.y === mob.y && saved.map.walked > 0 && saved.map.trail.length > 0, 'new: the walk was not saved');
   await page.reload();
   await page.waitForFunction(() => window.ironvowStarted === true);
   check(await page.locator('.hero-name').innerText() === 'ADAM', 'new: the hero did not come back after a reload');
@@ -117,6 +172,14 @@ for (const width of [375, 390, 430]) {
   await fits('hero'); await shot('2-hero');
   await tab('vendor'); await page.click('[data-a="buy"]'); await page.waitForTimeout(3000); await fits('vendor'); await shot('3-vendor');
   await tab('adventure'); await fits('adventure'); await shot('4-adventure');
+  if (width === 390) {
+    // A veteran has steps to spare: walk a long way, then look at the trail from far above.
+    for (let hop = 0; hop < 6; hop++) { const far = await nearestMob(page); await walkOnMap(page, far.x, far.y); }
+    await shot('5-walked', false);
+    await page.click('[data-a="mapFull"]');
+    for (let i = 0; i < 3; i++) await page.click('[data-a="mapZoom"][data-v="-1"]');
+    await shot('6-zoomed-out', false);
+  }
   await close();
 }
 

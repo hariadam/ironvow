@@ -8,6 +8,9 @@ import { announce, toast } from './feedback.js';
 
 export const TABS = ['quests', 'hero', 'vendor', 'adventure'];
 
+// What the world map is showing (see ui/map.js). The camera is set the first time the map is drawn.
+const closedMap = () => ({ cam: null, sel: null, route: null, walk: null, full: false });
+
 export const session = {
   hero: null,          // null until a hero is created or loaded
   brokenSave: null,    // { code, raw } when this device holds a save that cannot be read
@@ -19,7 +22,8 @@ export const session = {
     confirmDelete: false,
     exportCode: null,         // the save code, when shown for copying
     pendingImport: null,      // a decoded save waiting for "replace my hero?" to be confirmed
-    battle: null,             // the venture being played back (see screens/adventure.js)
+    battle: null,             // the fight being played back (see screens/adventure.js)
+    map: closedMap(),
   },
 };
 
@@ -52,6 +56,7 @@ export function playAs(hero) {
   session.hero = hero;
   session.brokenSave = null;
   session.ui.battle = null;
+  session.ui.map = closedMap();
   session.ui.tab = 'quests';
   if (!startDay()) save();
 }

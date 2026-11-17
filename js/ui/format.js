@@ -49,3 +49,8 @@ export function longDay(key) {
   const [y, m, d] = key.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
+
+const WINDS = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'];
+
+// The compass direction of a step of dx tiles east and dy tiles south: "north-east".
+export const compass = (dx, dy) => WINDS[(Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8];

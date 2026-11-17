@@ -8,9 +8,11 @@ globalThis.PixelItems = createRequire(import.meta.url)('../js/lib/pixel-items.js
 const { CLASSES } = await import('../js/content/classes.js');
 const { ITEMS } = await import('../js/content/items.js');
 const { QUESTS } = await import('../js/content/quests.js');
-const { venture } = await import('../js/rules/adventure.js');
+const { fight, foesInView } = await import('../js/rules/adventure.js');
 const { newHero } = await import('../js/rules/hero.js');
 const { claimCache, completeQuest, setQuestAmount } = await import('../js/rules/quests.js');
+const { routeTo, walkTo } = await import('../js/rules/travel.js');
+const { dungeons } = await import('../js/rules/world.js');
 const { amountText, coinText, progressText } = await import('../js/ui/format.js');
 const { session, TABS } = await import('../js/ui/session.js');
 const shell = await import('../js/ui/screens/shell.js');
@@ -70,14 +72,15 @@ test('the battle story draws line by line, win or lose, and hides the result unt
     const hero = newHero('Fighter', 'warrior', DAY);
     session.hero = hero;
     session.ui.tab = 'adventure';
+    Object.assign(hero.map, { x: dungeons()[0].x, y: dungeons()[0].y });
     const bar = shell.barNumbers(hero);
-    const events = venture(hero, 'z1', () => roll);
-    // The same battle record the venture action builds, without its timers.
+    const events = fight(hero, () => roll);
+    // The same battle record the fight action builds, without its timers.
     session.ui.battle = { lines: [{ text: 'A line' }, { text: 'Loot!', tone: 'gold', drop: 'd1' }], shown: 1, over: false, bar, events };
     const during = shell.render(screens.adventure.render());
     assertClean(during, 'battle running');
     assert.ok(during.includes('0/100 XP'), 'the hero bar still shows the XP from before the battle');
-    assert.ok(!during.includes('data-a="venture"'), 'no second venture while one is playing');
+    assert.ok(!during.includes('data-a="fight"'), 'no second fight while one is playing');
     session.ui.battle.shown = 2;
     session.ui.battle.over = true;
     const after = shell.render(screens.adventure.render());
@@ -85,6 +88,40 @@ test('the battle story draws line by line, win or lose, and hides the result unt
     assert.ok(after.includes(`${hero.totalXp}/100 XP`) && after.includes('Wolfhide Hood'));
     session.ui.battle = null;
   }
+});
+
+test('the adventure tab draws whatever the player is looking at on the map', () => {
+  const hero = newHero('Scout', 'ranger', DAY);
+  hero.totals.steps = 5000;
+  session.hero = hero;
+  session.ui.tab = 'adventure';
+  const draw = (sel, where) => {
+    Object.assign(session.ui.map, { sel, route: sel ? routeTo(hero, sel.x, sel.y) : null });
+    const html = shell.render(screens.adventure.render());
+    assertClean(html, where);
+    return html;
+  };
+  assert.ok(draw(null, 'in town').includes('Hearthford') && draw(null, 'in town').includes('You are here.'));
+  assert.ok(draw({ x: 0, y: 40 }, 'fog').includes('Unknown land'));
+  assert.ok(draw({ x: 15, y: 3 }, 'a peak').includes('Cannot be crossed'));
+  assert.ok(draw({ x: -20, y: 0 }, 'open land').includes('data-a="walk"'));
+  const mob = foesInView(hero)[0];
+  const looking = draw({ x: mob.x, y: mob.y }, 'a mob in view');
+  assert.ok(looking.includes(mob.foe.mob.name) && looking.includes('data-a="walk"') && !looking.includes('data-a="fight"'));
+  walkTo(hero, mob.x, mob.y);
+  const standing = draw(null, 'standing on a mob');
+  assert.ok(standing.includes(mob.foe.mob.name) && standing.includes('data-a="fight"') && standing.includes('Victory chance'));
+  hero.energy = 0;
+  assert.ok(draw(null, 'no energy').includes('No energy'));
+  const z1 = dungeons()[0], z2 = dungeons()[1];
+  assert.ok(draw(null, 'dungeon list').includes(`Rumour: about 400 steps east of Hearthford`));
+  Object.assign(hero.map, { x: z2.x, y: z2.y });
+  const locked = draw(null, 'a dungeon above the hero');
+  assert.ok(locked.includes(z2.zone.name) && locked.includes('Reach level 3 to enter') && locked.includes('at night'));
+  Object.assign(hero.map, { x: z1.x, y: z1.y });
+  session.ui.map.full = true;
+  assert.ok(draw(null, 'full screen').includes('map-full'));
+  Object.assign(session.ui.map, { sel: null, route: null, full: false });
 });
 
 test('the create and recovery screens draw', () => {

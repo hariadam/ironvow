@@ -1,4 +1,4 @@
-// Game content must stay consistent: every reference points at something real, every item and zone can be drawn,
+// Game content must stay consistent: every reference points at something real, every item, zone, mob and tile can be drawn,
 // and no id that has ever shipped disappears (saves store ids).
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,11 +9,14 @@ globalThis.PixelItems = createRequire(import.meta.url)('../js/lib/pixel-items.js
 const { MAX_LEVEL } = await import('../js/content/balance.js');
 const { CLASSES, STATS } = await import('../js/content/classes.js');
 const { ITEMS, RARITIES, SLOTS } = await import('../js/content/items.js');
+const { MOBS } = await import('../js/content/mobs.js');
 const { QUESTS } = await import('../js/content/quests.js');
+const { BIOMES } = await import('../js/content/world.js');
 const { ZONES } = await import('../js/content/zones.js');
 const { ICON_NAMES, icon } = await import('../js/ui/art/icons.js');
 const { ITEM_KINDS, itemSprite, RARITY } = await import('../js/ui/art/items.js');
 const { SCENE_NAMES, sceneSvg } = await import('../js/ui/art/scenes.js');
+const { MARK_ART, MOB_ART, TERRAIN_ART } = await import('../js/ui/art/tiles.js');
 
 // Every id that has been in a released version. Add new ids here when they ship; never remove one.
 const SHIPPED = {
@@ -82,9 +85,36 @@ test('zones are complete, in level order, and every scene can be drawn', () => {
     assert.ok(zone.power > 0 && zone.xp > 0 && zone.copper[0] <= zone.copper[1], `${zone.id} numbers`);
     assert.ok(ITEMS[zone.drop] && !ITEMS[zone.drop].sold, `${zone.id} drop`);
     assert.ok(SCENE_NAMES.includes(zone.scene), `${zone.id} scene`);
-    for (const mode of ['open', 'locked', 'strip']) assert.match(sceneSvg(zone.scene, mode), /^<svg .*<\/svg>$/);
+    for (const mode of ['open', 'locked']) assert.match(sceneSvg(zone.scene, mode), /^<svg .*<\/svg>$/);
   });
   assert.equal(ZONES[0].level, 1, 'a new hero needs somewhere to go');
+});
+
+// An 8×8 map sprite: eight rows of eight characters, each '.' or a colour in the palette.
+function assertTile(art, rows, what) {
+  assert.equal(rows.length, 8, `${what}: 8 rows`);
+  for (const row of rows) {
+    assert.equal(row.length, 8, `${what}: 8 columns`);
+    for (const ch of row) assert.ok(ch === '.' || /^#[0-9A-F]{6}$/i.test(art.palette[ch]), `${what}: "${ch}" has no colour`);
+  }
+}
+
+test('every kind of land has a tile, and every wild mob a home and a sprite', () => {
+  assert.equal(new Set(BIOMES.map(b => b.id)).size, BIOMES.length);
+  for (const biome of BIOMES) {
+    const art = TERRAIN_ART[biome.id];
+    assert.ok(biome.name && art && /^#[0-9A-F]{6}$/i.test(art.base), `${biome.id} tile`);
+    assert.equal(art.rows.length, 2, `${biome.id} has two variants`);
+    art.rows.forEach(rows => assertTile(art, rows, biome.id));
+    assert.equal(MOBS.some(mob => mob.biome === biome.id), biome.walk, `${biome.id}: mobs live on all land that can be walked, and only there`);
+  }
+  assert.equal(new Set(MOBS.map(mob => mob.id)).size, MOBS.length);
+  for (const mob of MOBS) {
+    assert.ok(mob.name && mob.foe && mob.arrive, `${mob.id} texts`);
+    assert.ok(MOB_ART[mob.id], `${mob.id} sprite`);
+    assertTile(MOB_ART[mob.id], MOB_ART[mob.id].rows, mob.id);
+  }
+  for (const name of ['town', 'dungeon', 'hero']) assertTile(MARK_ART[name], MARK_ART[name].rows, name);
 });
 
 test('quests are complete', () => {

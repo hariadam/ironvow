@@ -1,7 +1,10 @@
-// Adventure zones, easiest first. Zone ids are stored in saves: never rename or delete one.
+// Dungeons, easiest first. Each stands on one tile of the world map (rules/world.js places them) and holds
+// a boss that can be fought again and again. Zone ids are stored in saves: never rename or delete one.
 // level: hero level needed to enter. power: battle power the zone is balanced for.
 // copper: [least, most] won per victory. drop: the item id the boss can drop.
 // scene: the pixel scene drawn for the zone, a name in ui/art/scenes.js.
+// Wild mobs take their numbers from this list too: a mob of level L is as strong and pays as much as a
+// zone of level L would (rules/adventure.js), so keep the levels in order and the numbers rising.
 
 export const ZONES = [
   { id: 'z1', name: 'Wolfpine Hollow', level: 1, power: 15, xp: 30, copper: [800, 2000], foe: 'A pack of mangy wolves', arrive: 'circles out of the pines', drop: 'd1', scene: 'wolfpine' },

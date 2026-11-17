@@ -9,6 +9,9 @@
 // Inputs: data-enter="name" runs that action when Enter is pressed. data-keep (with an id) keeps what the
 // player typed across redraws.
 //
+// After the redraw: a tab may export afterDraw(), which runs after every redraw while that tab is showing.
+// The Adventure tab uses it to paint the world map's canvas (ui/map.js), the one thing that is not HTML.
+//
 // To add a tab: write js/ui/screens/<name>.js exporting render() and actions, add it to SCREENS below and
 // to TABS in session.js, add its label in screens/shell.js and its 8×8 icon in art/icons.js.
 
@@ -44,6 +47,7 @@ function render() {
     : !session.hero ? create.render()
       : shell.render(SCREENS[session.ui.tab].render());
   kept.forEach((value, id) => { const el = document.getElementById(id); if (el) el.value = value; });
+  if (session.hero && !session.brokenSave) SCREENS[session.ui.tab].afterDraw?.();
 }
 
 function run(name, value, el) {

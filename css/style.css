@@ -182,12 +182,31 @@ textarea.code { flex: none; height: auto; padding: 8px 10px; font: 13px/17px 'Co
 .field { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .field input { flex: none; width: 116px; text-align: right; }
 
-/* ---- Adventure */
+/* ---- Adventure: the world map. The map itself is a canvas painted by js/ui/map.js. */
+.map-title { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.stage { position: relative; height: 328px; background: var(--outline); box-shadow: var(--border); overflow: hidden; }   /* 328px = the hero's whole view at the starting zoom */
+.map { display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.tools { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 12px; }
+.tool { width: 52px; height: 44px; padding: 0; background: var(--raised); color: var(--accent); box-shadow: var(--border); font: 400 9px/12px var(--display); text-transform: uppercase; }
+.tool:active { background: var(--panel); }
+.full-only { display: none; }
+.dungeon { display: flex; flex-direction: column; gap: 2px; }
+/* Full screen: the map fills the phone, with the steps on top and the card of the picked place at the bottom. */
+body:has(.map-full) { overflow: hidden; }
+.map-full .stage { position: fixed; z-index: 25; inset: 0; height: auto; box-shadow: none; }
+.map-full .tools { top: calc(env(safe-area-inset-top, 0px) + 12px); right: max(12px, env(safe-area-inset-right, 0px)); }
+.map-full .map-title { position: fixed; z-index: 26; top: calc(env(safe-area-inset-top, 0px) + 12px); left: max(16px, env(safe-area-inset-left, 0px)); right: 84px; pointer-events: none; }
+.map-full .map-title h1, .map-full .dungeons { display: none; }
+.map-full .map-title .chip { box-shadow: var(--border); margin: 4px; }
+.map-full .full-only { display: inline-flex; }
+.map-full .place { position: fixed; z-index: 26; left: 19px; right: 19px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); max-width: 442px; margin: 0 auto; }
+
+/* ---- Adventure: the card of a place, and the battle story */
 .zone { display: flex; flex-direction: column; }
 .scene { position: relative; display: flex; justify-content: center; overflow: hidden; }   /* the scene is wider than the card; its centre shows */
-.zone-body { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px 8px; border-top: 4px solid var(--outline); }
+.zone-body { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px 8px; }
+.scene + .zone-body { border-top: 4px solid var(--outline); }
 .scene-lock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-.scene-tag { position: absolute; left: 8px; top: 8px; padding: 0 6px; background: var(--outline); color: var(--text); font: 400 9px/20px var(--display); text-transform: uppercase; }
 .level-tag { flex: none; padding: 0 6px; background: var(--accent); color: var(--on-accent); font: 400 10px/18px var(--display); }
 .locked .level-tag { background: var(--raised); color: var(--text); }
 .zone-foot { margin-top: 2px; justify-content: flex-end; }

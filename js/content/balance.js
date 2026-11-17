@@ -8,7 +8,7 @@ export const XP_CURVE = { base: 100, exponent: 1.5 };
 
 export const START_COPPER = 10000;
 
-export const ENERGY = { cap: 10, start: 3, perQuest: 1, perVenture: 1 };
+export const ENERGY = { cap: 10, start: 3, perQuest: 1, perFight: 1 };
 
 // Keeping the same quest on consecutive days adds bonusPerDay to its rewards, up to maxBonus.
 export const STREAK = { bonusPerDay: 0.1, maxBonus: 0.5 };
@@ -16,7 +16,8 @@ export const STREAK = { bonusPerDay: 0.1, maxBonus: 0.5 };
 // Champion's Cache: the reward for finishing every daily quest.
 export const CACHE = { xp: 150, copper: 10000, energy: 2 };
 
-// Win chance = winFactor × hero power ÷ zone power, kept between minChance and maxChance.
+// Win chance = winFactor × hero power ÷ the foe's power, kept between minChance and maxChance.
+// dropChance: how often a dungeon boss drops its item. lossXpShare: the share of the XP a lost fight still pays.
 export const COMBAT = { winFactor: 0.75, minChance: 0.05, maxChance: 0.95, dropChance: 0.18, lossXpShare: 0.25 };
 
 // Selling an item pays this share of its price.

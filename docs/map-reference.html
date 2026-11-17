@@ -1,0 +1,793 @@
+<!doctype html>
+<!-- The approved mock of the world map (November 2026). A design reference, like adventure-reference.html:
+     the game does not load it. The real map is js/ui/map.js. This mock also shows things that are designed
+     but not built yet (chests, rare elites, graveyards, more towns, the view distance and speed dials), with
+     the sprites and spawn numbers the owner approved for them. Its world is laid out differently from the
+     game's, and its explored map is kept in this browser only. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ironvow Map Mock</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400;600&display=swap">
+<style>
+html, body { margin: 0; }
+/* Layout: one phone column like the game. Map on top, the tapped tile's details under it, then the mock's dials. */
+:root {
+  --bg: #1A1630; --bg-dither: #1F1A3A; --panel: #2A2550; --raised: #3B3470; --outline: #0D0B1A;
+  --text: #F4EFD8; --body: #E6E0F5; --dim: #D5CFF0;
+  --accent: #FFCF4A; --accent-lip: #B8862A; --on-accent: #1A1630;
+  --xp: #7FF0D8; --good: #8CE06A; --danger: #FF7A59; --quiet-lip: #1C183A;
+  --display: 'Press Start 2P', 'Courier New', monospace;
+  --read: 'Pixelify Sans', 'Courier New', monospace;
+  --border: 0 -4px 0 var(--outline), 0 4px 0 var(--outline), -4px 0 0 var(--outline), 4px 0 0 var(--outline);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  color: var(--body); font: 400 15px/19px var(--read);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(45deg, var(--bg-dither) 25%, transparent 25%, transparent 75%, var(--bg-dither) 75%),
+    linear-gradient(45deg, var(--bg-dither) 25%, transparent 25%, transparent 75%, var(--bg-dither) 75%);
+  background-size: 8px 8px; background-position: 0 0, 4px 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+h1, h2, p { margin: 0; }
+b { font-weight: 600; color: var(--text); }
+button { font: inherit; color: inherit; border: 0; border-radius: 0; -webkit-appearance: none; appearance: none; cursor: pointer; }
+:focus-visible { outline: 4px solid var(--text); outline-offset: 4px; }
+
+.app {
+  max-width: 480px; margin: 0 auto; padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 16px;
+}
+.title { display: flex; flex-direction: column; gap: 6px; }
+h1 { font: 400 18px/22px var(--display); color: var(--accent); text-shadow: 3px 3px 0 var(--outline); text-transform: uppercase; }
+h2 { font: 400 12px/20px var(--display); color: var(--text); text-transform: uppercase; text-wrap: balance; }
+.dim { color: var(--dim); }
+.bad { color: var(--danger); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background: var(--raised); padding: 6px 8px; font: 400 9px/12px var(--display); text-transform: uppercase; color: var(--text); }
+.chip b { color: var(--xp); font-weight: 400; }
+
+/* The map: drag to move, pinch to zoom. The tools sit on its top right corner. */
+.stage { position: relative; height: 416px; background: var(--outline); box-shadow: var(--border); overflow: hidden; }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.tools { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 12px; }
+.tool { width: 52px; min-height: 44px; padding: 0; background: var(--raised); color: var(--accent); font: 400 9px/12px var(--display); text-transform: uppercase; box-shadow: var(--border); }
+.tool.sign { font-size: 14px; }
+.tool:active { background: var(--panel); }
+
+/* Full screen: the map fills the page, with the steps on top and the tapped tile's card at the bottom. */
+body.full { overflow: hidden; }
+body.full .title, body.full .extra, body.full #tile-extra { display: none; }
+body.full .stage { position: fixed; inset: 0; height: auto; z-index: 20; box-shadow: none; }
+body.full .tools { top: calc(env(safe-area-inset-top, 0px) + 12px); right: max(12px, env(safe-area-inset-right, 0px)); }
+body.full .chips { position: fixed; z-index: 21; top: calc(env(safe-area-inset-top, 0px) + 12px); left: max(12px, env(safe-area-inset-left, 0px)); right: 80px; pointer-events: none; }
+body.full .chip { box-shadow: var(--border); margin: 4px; }
+body.full #tile-panel { position: fixed; z-index: 21; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); max-width: 448px; margin: 0 auto; }
+
+.panel { background: var(--panel); box-shadow: var(--border); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.split { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tag { font: 400 9px/12px var(--display); color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+
+.btn { min-height: 44px; padding: 0 12px; font: 400 10px/14px var(--display); text-transform: uppercase; }
+.btn.primary { width: 100%; font-size: 12px; background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 0 var(--accent-lip); margin-bottom: 4px; }
+.btn.primary:active { transform: translateY(4px); box-shadow: none; }
+.btn.plain { background: var(--raised); color: var(--accent); box-shadow: 0 4px 0 var(--quiet-lip); margin-bottom: 4px; }
+.btn.plain:active { transform: translateY(4px); box-shadow: none; }
+.locked { min-height: 44px; padding: 8px 12px; background: var(--raised); box-shadow: 0 4px 0 var(--quiet-lip); margin-bottom: 4px; color: var(--dim); display: flex; align-items: center; justify-content: center; text-align: center; }
+
+.dial { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dial .steppers { display: flex; align-items: center; gap: 8px; }
+.dial .value { min-width: 44px; text-align: center; font: 400 12px/16px var(--display); color: var(--xp); }
+.dial .btn { width: 44px; padding: 0; font-size: 14px; }
+
+.legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.legend div { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.legend canvas { flex: none; width: 32px; height: 32px; background: var(--raised); image-rendering: crisp-edges; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="title">
+    <h1>World map</h1>
+    <p>A mock to judge the look and feel. Tap a tile, then walk there. Drag to move the map, pinch to zoom.</p>
+  </div>
+
+  <div class="chips">
+    <span class="chip">Steps <b id="steps"></b></span>
+    <span class="chip">Per tile <b id="cost"></b></span>
+    <span class="chip">From town <b id="far"></b></span>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="map" tabindex="0" role="application" aria-label="World map. Arrow keys move the marker, Enter walks there."></canvas>
+    <div class="tools">
+      <button class="tool" id="full" aria-pressed="false" aria-label="Full screen map">Full</button>
+      <button class="tool sign" id="zoom-in" aria-label="Zoom in">+</button>
+      <button class="tool sign" id="zoom-out" aria-label="Zoom out">-</button>
+      <button class="tool" id="find" aria-label="Centre the map on your hero">Me</button>
+    </div>
+  </div>
+
+  <section class="panel" id="tile-panel" aria-live="polite">
+    <div class="split"><h2 id="tile-name"></h2><span class="tag" id="tile-level"></span></div>
+    <p id="tile-text"></p>
+    <p class="dim" id="tile-extra"></p>
+    <div id="tile-action"></div>
+  </section>
+
+  <section class="panel extra">
+    <h2>Try the dials</h2>
+    <div class="dial"><span>View distance (a stat you would buy)</span>
+      <span class="steppers"><button class="btn plain" id="view-less" aria-label="Less view distance">-</button><span class="value" id="view"></span><button class="btn plain" id="view-more" aria-label="More view distance">+</button></span></div>
+    <div class="dial"><span>Steps per tile (movement speed)</span>
+      <span class="steppers"><button class="btn plain" id="cost-more" aria-label="Slower">-</button><span class="value" id="speed"></span><button class="btn plain" id="cost-less" aria-label="Faster">+</button></span></div>
+    <button class="btn plain" id="log">Log 1,000 real steps</button>
+    <button class="btn plain" id="reset">Start over</button>
+  </section>
+
+  <section class="panel extra">
+    <h2>What the marks mean</h2>
+    <div class="legend" id="legend"></div>
+    <p class="dim">Land you uncover stays on your map for good, with its towns, graveyards and dungeons. The brighter patch is what your hero can see right now; chests and rare elites only show inside it.</p>
+    <p class="dim">Mock only: no fights or loot. Your explored map is remembered on this phone.</p>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------- The world: everything below comes from one seed, so the same seed always builds the same world.
+  const SEED = 20261117;
+  const TILE = 8;                                   // sprite pixels per tile
+  // CSS px per sprite pixel. Below 1 the land is drawn as flat colour; at the far end the whole world fits on a phone.
+  const ZOOMS = [1 / 128, 1 / 64, 1 / 32, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1, 2, 3, 4, 6, 8];
+  const START_ZOOM = 1;
+  const SLICES = 8;                                 // pie slices, each with one guaranteed dungeon
+  const CHUNK = 32;                                 // the world is worked out and remembered in 32x32 blocks
+
+  function hash(x, y, salt) {
+    let h = (SEED ^ Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(salt | 0, 2147483647)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+    h = (h ^ (h >>> 16)) >>> 0;
+    h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0;
+    return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
+  }
+  const smooth = t => t * t * (3 - 2 * t);
+  function noise(x, y, salt) {
+    const x0 = Math.floor(x), y0 = Math.floor(y), fx = smooth(x - x0), fy = smooth(y - y0);
+    const a = hash(x0, y0, salt), b = hash(x0 + 1, y0, salt), c = hash(x0, y0 + 1, salt), d = hash(x0 + 1, y0 + 1, salt);
+    return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+  }
+  // Big shapes, plus two finer layers so coasts and forest edges are ragged.
+  const field = (x, y, size, salt) => noise(x / size, y / size, salt) * 0.6 + noise(x / (size / 2.3), y / (size / 2.3), salt + 1) * 0.28 + noise(x / (size / 6), y / (size / 6), salt + 2) * 0.12;
+
+  const BIOME_IDS = ['grass', 'forest', 'hills', 'swamp', 'water', 'peak'];   // the first four can be walked on
+  const BIOMES = {
+    grass: { name: 'Open meadow', walk: true },
+    forest: { name: 'Pine forest', walk: true },
+    hills: { name: 'Rocky hills', walk: true },
+    swamp: { name: 'Gloomfen', walk: true },
+    water: { name: 'Deep water', walk: false },
+    peak: { name: 'Mountain peak', walk: false },
+  };
+  function biomeRaw(x, y) {
+    if (x * x + y * y <= 40) return 0;
+    const height = field(x, y, 46, 10), wet = field(x, y, 58, 20);
+    if (height < 0.36) return 4;
+    if (height > 0.69) return 5;
+    if (height > 0.61) return 2;
+    if (wet > 0.62 && height < 0.46) return 3;
+    if (wet > 0.52) return 1;
+    return 0;
+  }
+
+  const chunkKey = (cx, cy) => (cx + 32768) * 65536 + (cy + 32768);
+  const chunks = new Map();
+  function chunkOf(cx, cy) {
+    const key = chunkKey(cx, cy);
+    let chunk = chunks.get(key);
+    if (!chunk) {
+      const biome = new Uint8Array(CHUNK * CHUNK);
+      for (let j = 0; j < CHUNK; j++) for (let i = 0; i < CHUNK; i++) biome[j * CHUNK + i] = biomeRaw(cx * CHUNK + i, cy * CHUNK + j);
+      chunk = { biome, marks: null };
+      chunks.set(key, chunk);
+    }
+    return chunk;
+  }
+  const biomeId = (x, y) => chunkOf(x >> 5, y >> 5).biome[(y & 31) * CHUNK + (x & 31)];
+  const biomeAt = (x, y) => BIOME_IDS[biomeId(x, y)];
+  const walkable = (x, y) => biomeId(x, y) < 4;
+  const tilesFromTown = (x, y) => Math.sqrt(x * x + y * y);
+  // Mob level rises with distance, with a wobble so some pockets are safer or nastier than their ring.
+  function levelAt(x, y) {
+    const wobble = (noise(x / 30, y / 30, 30) - 0.5) * 4;
+    return Math.max(1, Math.min(60, Math.round(1 + tilesFromTown(x, y) / 50 + wobble)));
+  }
+
+  function nearestWalkable(x, y) {
+    for (let r = 0; r < 40; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) === r && walkable(x + dx, y + dy)) return [x + dx, y + dy];
+    }
+    return [x, y];
+  }
+
+  // Guaranteed places. One dungeon per pie slice, at a rolled distance inside its band.
+  const fixed = new Map([['0,0', { kind: 'town', name: 'Hearthford' }]]);
+  const BOSSES = ['Wolfpine Hollow', 'Old Mill Cellars', 'Gloomfen Marsh', 'Bandit Ridge', 'Sunken Crypt', 'Emberpeak Caverns', 'Frostmaw Pass', 'Citadel of the Ashen King'];
+  for (let i = 0; i < SLICES; i++) {
+    const angle = (i + 0.15 + hash(i, 0, 40) * 0.7) * (Math.PI * 2 / SLICES);
+    const distance = 150 + hash(i, 1, 40) * 300;
+    const [x, y] = nearestWalkable(Math.round(Math.cos(angle) * distance), Math.round(Math.sin(angle) * distance));
+    fixed.set(`${x},${y}`, { kind: 'dungeon', name: BOSSES[i] });
+  }
+  // One per square region: the trick that spreads towns and graveyards evenly.
+  function regionSpot(x, y, size, salt) {
+    const rx = Math.floor(x / size), ry = Math.floor(y / size);
+    return [rx * size + 1 + Math.floor(hash(rx, ry, salt) * (size - 2)), ry * size + 1 + Math.floor(hash(rx, ry, salt + 1) * (size - 2))];
+  }
+  const TOWN_NAMES = ['Briarwick', 'Coldharbor', 'Mossgate', 'Ashbourne', 'Thistledown', 'Greywater', 'Emberfall', 'Larkhollow'];
+  const RARITIES = ['Common', 'Uncommon', 'Rare', 'Epic'];
+  const RARITY_COLORS = ['#D5CFF0', '#8CE06A', '#5BC8FF', '#D07BFF'];
+  // How rare things are. Regions are in tiles; chances are per tile.
+  const SPREAD = { townRegion: 300, graveRegion: 100, elite: 0.000015, chest: 0.0001 };
+
+  function featureAt(x, y) {
+    const key = `${x},${y}`;
+    if (fixed.has(key)) return fixed.get(key);
+    if (!walkable(x, y)) return null;
+    const far = tilesFromTown(x, y);
+    const [tx, ty] = regionSpot(x, y, SPREAD.townRegion, 50);
+    if (tx === x && ty === y && far > 60) return { kind: 'town', name: TOWN_NAMES[Math.floor(hash(x, y, 52) * TOWN_NAMES.length)] };
+    const [gx, gy] = regionSpot(x, y, SPREAD.graveRegion, 60);
+    if (gx === x && gy === y && far > 20) return { kind: 'grave' };
+    if (far < 12) return null;
+    if (hash(x, y, 70) < SPREAD.elite) return { kind: 'elite' };
+    if (hash(x, y, 80) < SPREAD.chest) {
+      // Rarer chests become more likely the higher the area's level.
+      const level = levelAt(x, y);
+      const weights = [60, 25 + level, 4 + level * 1.5, level * 0.5];
+      let roll = hash(x, y, 81) * weights.reduce((a, b) => a + b, 0), rarity = 0;
+      while (roll > weights[rarity]) { roll -= weights[rarity]; rarity++; }
+      return { kind: 'chest', rarity, guarded: hash(x, y, 82) < 0.5 };
+    }
+    return null;
+  }
+  // Everything worth marking in one block, as [x, y, feature]. Worked out the first time the block is looked at.
+  function marksOf(cx, cy) {
+    const chunk = chunkOf(cx, cy);
+    if (!chunk.marks) {
+      chunk.marks = [];
+      for (let j = 0; j < CHUNK; j++) for (let i = 0; i < CHUNK; i++) {
+        const feature = featureAt(cx * CHUNK + i, cy * CHUNK + j);
+        if (feature) chunk.marks.push([cx * CHUNK + i, cy * CHUNK + j, feature]);
+      }
+    }
+    return chunk.marks;
+  }
+
+  // ---------- Pixel art: 8x8 sprites as rows of characters, '.' is empty.
+  const TERRAIN = {
+    grass: { base: '#3E6B4A', palette: { d: '#34593F', l: '#55875E' }, rows: [
+      ['........', '.l......', '......d.', '........', '...d....', '........', '.....l..', '........'],
+      ['........', '....l...', '.d......', '........', '......l.', '..d.....', '........', '........']] },
+    forest: { base: '#2F5240', palette: { L: '#2A7050', h: '#46976A', t: '#5A3F2E' }, rows: [
+      ['...LL...', '..LLhL..', '.LLLLhL.', '.LLLLLL.', '..LLLL..', '...tt...', '...tt...', '........'],
+      ['.LL.....', 'LLhL....', 'LLLL.LL.', '.tt.LLhL', '....LLLL', '.....tt.', '........', '........']] },
+    hills: { base: '#5F5248', palette: { m: '#8A7460', s: '#4A3F38', l: '#A38C74' }, rows: [
+      ['........', '...ll...', '..lmmm..', '.lmmmss.', 'lmmmmsss', '........', '.....lm.', '....lmss'],
+      ['........', '.ll.....', 'lmms....', 'mmmss...', '.....ll.', '....lmms', '...lmmss', '........']] },
+    swamp: { base: '#3D4A3C', palette: { p: '#2B3A52', r: '#8A9A4E' }, rows: [
+      ['........', '.r...pp.', '.r..pppp', '.....pp.', '..pp....', '.pppp.r.', '..pp..r.', '........'],
+      ['......r.', '.ppp..r.', 'ppppp...', '.ppp....', '....r...', '....r.pp', '.....ppp', '........']] },
+    water: { base: '#274684', palette: { w: '#4A74C0' }, rows: [
+      ['........', '.ww.....', '........', '.....ww.', '........', '..ww....', '........', '......w.'],
+      ['........', '....ww..', '........', '.ww.....', '........', '.....ww.', 'w.......', '........']] },
+    peak: { base: '#3A3654', palette: { w: '#F4EFD8', r: '#8E8AA8', s: '#5F5B7C' }, rows: [
+      ['...ww...', '..wwrs..', '..rrrs..', '.rrrrss.', '.rrrrss.', 'rrrrrsss', 'rrrrrsss', '........'],
+      ['........', '....ww..', '...wwrs.', '...rrrs.', '..rrrrss', '.rrrrrss', '.rrrrrss', '........']] },
+  };
+  const MARKS = {
+    town: { palette: { r: '#C8553D', w: '#F4EFD8', d: '#5A3F2E', k: '#0D0B1A' }, rows: ['...rr...', '..rrrr..', '.rrrrrr.', 'rrrrrrrr', 'kwwwwwwk', 'kwwddwwk', 'kwwddwwk', '.kkkkkk.'] },
+    grave: { palette: { g: '#B9B4D0', k: '#2A2550', o: '#0D0B1A' }, rows: ['..oooo..', '.oggggo.', 'oggkkggo', 'ogkkkkgo', 'oggkkggo', 'oggkkggo', 'oggggggo', 'oooooooo'] },
+    dungeon: { palette: { s: '#8E8AA8', k: '#0D0B1A', f: '#FFCF4A' }, rows: ['..ssss..', '.ssssss.', 'sskkkkss', 'skkkkkks', 'fkkkkkkf', 'skkkkkks', 'skkkkkks', 'ssk..kss'] },
+    elite: { palette: { w: '#F4EFD8', k: '#0D0B1A', e: '#FF7A59' }, rows: ['.kkkkkk.', 'kwwwwwwk', 'kweeweek', 'kweeweek', 'kwwwkwwk', '.kwwwwk.', '.kwkwkk.', '..kkkk..'] },
+    chest: { palette: { o: '#0D0B1A', b: '#D5CFF0', g: '#FFCF4A' }, rows: ['........', '.oooooo.', 'obbbbbbo', 'oooggooo', 'obbggbbo', 'obbbbbbo', '.oooooo.', '........'] },
+    guard: { palette: { e: '#FF7A59', k: '#0D0B1A' }, rows: ['.....kkk', '.....kek', '.....kkk', '........', '........', '........', '........', '........'] },
+    hero: { palette: { h: '#FFCF4A', f: '#F2C9A0', c: '#4FE0C2', l: '#F4EFD8', k: '#0D0B1A' }, rows: ['.khhhhk.', '.kffffk.', '.kffffk.', 'kcccccck', 'ckcccckc', '.kcccck.', '.klkklk.', '.klkklk.'] },
+  };
+
+  function stamp(ctx, px, py, rows, palette, flip) {
+    for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
+      const color = palette[rows[j][flip ? 7 - i : i]];
+      if (color) { ctx.fillStyle = color; ctx.fillRect(px + i, py + j, 1, 1); }
+    }
+  }
+  function drawMark(ctx, px, py, feature) {
+    const mark = MARKS[feature.kind];
+    const palette = feature.kind === 'chest' ? { ...mark.palette, b: RARITY_COLORS[feature.rarity] } : mark.palette;
+    stamp(ctx, px, py, mark.rows, palette, false);
+    if (feature.guarded) stamp(ctx, px, py, MARKS.guard.rows, MARKS.guard.palette, false);
+  }
+
+  // Each sprite is painted once on its own 8x8 canvas, then drawn at whatever zoom the map is at.
+  const sprites = new Map();
+  function sprite(key, paint) {
+    let made = sprites.get(key);
+    if (!made) {
+      made = document.createElement('canvas');
+      made.width = made.height = TILE;
+      paint(made.getContext('2d'));
+      sprites.set(key, made);
+    }
+    return made;
+  }
+  function terrainSprite(x, y) {
+    const biome = biomeAt(x, y), variant = hash(x, y, 90) < 0.5 ? 0 : 1, flip = hash(x, y, 91) < 0.5;
+    return sprite(`${biome}${variant}${flip}`, c => {
+      const art = TERRAIN[biome];
+      c.fillStyle = art.base; c.fillRect(0, 0, TILE, TILE);
+      stamp(c, 0, 0, art.rows[variant], art.palette, flip);
+    });
+  }
+  const markSprite = feature => sprite(`${feature.kind}${feature.rarity ?? ''}${feature.guarded ? 'g' : ''}`, c => drawMark(c, 0, 0, feature));
+  const heroSprite = () => sprite('hero', c => stamp(c, 0, 0, MARKS.hero.rows, MARKS.hero.palette, false));
+  const FOG = '#14102A';
+  const fogSprite = odd => sprite(`fog${odd}`, c => {
+    c.fillStyle = FOG; c.fillRect(0, 0, TILE, TILE);
+    c.fillStyle = '#1F1A3A';
+    for (let b = 0; b < 4; b++) c.fillRect((b % 2) * 4 + odd * 2, (b >> 1) * 4 + 1, 2, 2);
+  });
+  // Zoomed out, a tile is one flat colour: its biome, darker when it is outside the hero's view.
+  const DIM = 0.3;
+  const BRIGHT = BIOME_IDS.map(id => [1, 3, 5].map(at => parseInt(TERRAIN[id].base.slice(at, at + 2), 16)).concat(255));
+  const DULL = BRIGHT.map(([r, g, b]) => [r, g, b].map((part, n) => Math.round(part * (1 - DIM) + [13, 11, 26][n] * DIM)).concat(255));
+
+  // ---------- The mock's state. In the real game this would live in the save.
+  const STORE = 'ironvow-map-mock-2';
+  const COSTS = [10, 8, 6, 5];            // steps per tile, slowest first
+  const VIEWS = [20, 40, 60, 80, 100];    // view distance in tiles
+  const fresh = () => ({ x: 0, y: 0, steps: 3000, view: VIEWS[0], cost: COSTS[0], sel: { x: 0, y: 0 }, path: null, far: false, walking: false });
+  let state = fresh();
+  // Uncovered land: block key -> 128 bytes, one bit per tile. Never cleared by walking away.
+  let seen = new Map();
+  function isSeen(x, y) {
+    const bits = seen.get(chunkKey(x >> 5, y >> 5));
+    if (!bits) return false;
+    const n = (y & 31) * CHUNK + (x & 31);
+    return (bits[n >> 3] >> (n & 7) & 1) === 1;
+  }
+  // Zoomed out, each block is one small picture, one pixel per tile: its uncovered land in full colour on the
+  // left half and dimmed on the right. A block is repainted after more of it is uncovered (`stale`).
+  const pictures = new Map();
+  const stale = new Set();
+  function paint(key, cx, cy, bits) {
+    let picture = pictures.get(key);
+    if (!picture) {
+      picture = document.createElement('canvas');
+      picture.width = CHUNK * 2; picture.height = CHUNK;
+      pictures.set(key, picture);
+    }
+    const biome = chunkOf(cx, cy).biome, c = picture.getContext('2d'), image = c.createImageData(CHUNK * 2, CHUNK);
+    for (let n = 0; n < CHUNK * CHUNK; n++) {
+      if (!(bits[n >> 3] >> (n & 7) & 1)) continue;
+      const at = ((n >> 5) * CHUNK * 2 + (n & 31)) * 4;
+      image.data.set(BRIGHT[biome[n]], at);
+      image.data.set(DULL[biome[n]], at + CHUNK * 4);
+    }
+    c.putImageData(image, 0, 0);
+    stale.delete(key);
+    return picture;
+  }
+  // The camera: which tile is at the centre of the map, and how big a sprite pixel is drawn.
+  const cam = { x: 0.5, y: 0.5, z: START_ZOOM };
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('map');
+  const ctx = canvas.getContext('2d');
+  const view = { w: 0, h: 0, dpr: 1 };
+  const inView = (x, y) => { const dx = x - state.x, dy = y - state.y; return dx * dx + dy * dy <= state.view * state.view + state.view; };
+  const keeps = feature => feature.kind === 'town' || feature.kind === 'grave' || feature.kind === 'dungeon';
+  // Zoomed so far out that a tile is under a pixel, only towns and dungeons are marked.
+  const shows = (x, y, feature) => isSeen(x, y) && (keeps(feature) || inView(x, y)) && (cam.z * TILE >= 1 || feature.kind === 'town' || feature.kind === 'dungeon');
+
+  // Uncovered land is remembered between visits. Storage can be missing; the mock works without it.
+  function restore() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORE));
+      if (!data || !Array.isArray(data.seen) || ![data.x, data.y, data.steps].every(Number.isInteger) || !COSTS.includes(data.cost) || !VIEWS.includes(data.view)) return;
+      const blocks = new Map();
+      for (const [key, text] of data.seen) {
+        const bits = Uint8Array.from(atob(text), ch => ch.charCodeAt(0));
+        if (!Number.isInteger(key) || bits.length !== CHUNK * CHUNK / 8) return;
+        blocks.set(key, bits);
+      }
+      Object.assign(state, { x: data.x, y: data.y, steps: data.steps, view: data.view, cost: data.cost, sel: { x: data.x, y: data.y } });
+      seen = blocks;
+    } catch { /* start fresh */ }
+  }
+  function remember() {
+    try {
+      const blocks = [...seen].map(([key, bits]) => [key, btoa(String.fromCharCode(...bits))]);
+      localStorage.setItem(STORE, JSON.stringify({ x: state.x, y: state.y, steps: state.steps, view: state.view, cost: state.cost, seen: blocks }));
+    } catch { /* nothing to do */ }
+  }
+
+  // Uncovers the round patch the hero can see from where they stand.
+  function reveal() {
+    const reach = state.view * state.view + state.view;
+    let lastKey = null, bits = null;
+    for (let dy = -state.view; dy <= state.view; dy++) {
+      const half = Math.floor(Math.sqrt(reach - dy * dy)), y = state.y + dy;
+      for (let x = state.x - half; x <= state.x + half; x++) {
+        const key = chunkKey(x >> 5, y >> 5);
+        if (key !== lastKey) {
+          lastKey = key; bits = seen.get(key); stale.add(key);
+          if (!bits) { bits = new Uint8Array(CHUNK * CHUNK / 8); seen.set(key, bits); }
+        }
+        const n = (y & 31) * CHUNK + (x & 31);
+        bits[n >> 3] |= 1 << (n & 7);
+      }
+    }
+  }
+
+  // Shortest walk over uncovered land, four directions. Looks toward the target first, and gives up
+  // (state.far) when the target is too far to plan in one go.
+  const PLAN_LIMIT = 120000;
+  function findPath(tx, ty) {
+    state.far = false;
+    if (!isSeen(tx, ty) || !walkable(tx, ty)) return null;
+    if (tx === state.x && ty === state.y) return [];
+    const spot = (x, y) => (x + 32768) * 65536 + (y + 32768);
+    const guess = (x, y) => Math.abs(x - tx) + Math.abs(y - ty);
+    const start = spot(state.x, state.y), goal = spot(tx, ty);
+    const from = new Map([[start, -1]]), walked = new Map([[start, 0]]);
+    const queue = new Map();   // total estimate -> spots waiting, nearest estimate first
+    let waiting = 1, estimate = guess(state.x, state.y), looked = 0;
+    queue.set(estimate, [[start, 0]]);
+    while (waiting) {
+      const line = queue.get(estimate);
+      if (!line || !line.length) { estimate++; continue; }
+      const [at, cost] = line.pop();
+      waiting--;
+      if (cost > walked.get(at)) continue;
+      if (at === goal) break;
+      if (++looked > PLAN_LIMIT) { state.far = true; return null; }
+      const x = Math.floor(at / 65536) - 32768, y = at % 65536 - 32768;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy, next = spot(nx, ny);
+        if (walked.has(next) && walked.get(next) <= cost + 1) continue;
+        if (!isSeen(nx, ny) || !walkable(nx, ny)) continue;
+        walked.set(next, cost + 1); from.set(next, at);
+        const total = cost + 1 + guess(nx, ny);
+        if (!queue.has(total)) queue.set(total, []);
+        queue.get(total).push([next, cost + 1]);
+        waiting++;
+      }
+    }
+    if (!from.has(goal)) return null;
+    const path = [];
+    for (let at = goal; at !== start; at = from.get(at)) path.push([Math.floor(at / 65536) - 32768, at % 65536 - 32768]);
+    return path.reverse();
+  }
+
+  function draw() {
+    const size = cam.z * TILE * view.dpr;                                  // one tile, in canvas pixels
+    const ox = view.w / 2 - cam.x * size, oy = view.h / 2 - cam.y * size;   // where tile 0,0 starts
+    const edge = (origin, n) => Math.round(origin + n * size);
+    // Marks, the hero and the marker never shrink below 16px, so they can still be found when zoomed far out.
+    const least = 16 * view.dpr;
+    const box = (x, y) => {
+      const px = edge(ox, x), py = edge(oy, y), w = edge(ox, x + 1) - px, s = Math.max(w, least);
+      return [Math.round(px + (w - s) / 2), Math.round(py + (w - s) / 2), s];
+    };
+    ctx.fillStyle = FOG; ctx.fillRect(0, 0, view.w, view.h);
+    const x0 = Math.floor(-ox / size), x1 = Math.floor((view.w - ox) / size);
+    const y0 = Math.floor(-oy / size), y1 = Math.floor((view.h - oy) / size);
+    // The uncovered blocks that are on screen, as [key, bits, block x, block y].
+    const blocks = [];
+    for (const [key, bits] of seen) {
+      const cx = Math.floor(key / 65536) - 32768, cy = key % 65536 - 32768;
+      if (cx >= x0 >> 5 && cx <= x1 >> 5 && cy >= y0 >> 5 && cy <= y1 >> 5) blocks.push([key, bits, cx, cy]);
+    }
+    if (cam.z < 1) {
+      // Zoomed out: one picture per block. Painting is rationed per frame so a huge map never freezes the page.
+      ctx.imageSmoothingEnabled = size < 1;
+      const drawn = [];
+      let budget = 80, more = false;
+      for (const [key, bits, cx, cy] of blocks) {
+        let picture = pictures.get(key);
+        if (!picture || stale.has(key)) {
+          if (budget > 0) { budget--; picture = paint(key, cx, cy, bits); } else more = true;
+        }
+        if (!picture) continue;
+        const px = edge(ox, cx * CHUNK), py = edge(oy, cy * CHUNK), w = edge(ox, (cx + 1) * CHUNK) - px, h = edge(oy, (cy + 1) * CHUNK) - py;
+        ctx.drawImage(picture, CHUNK, 0, CHUNK, CHUNK, px, py, w, h);
+        drawn.push([picture, px, py, w, h]);
+      }
+      // The patch the hero can see right now is drawn again in full colour, cut to its tile-stepped circle.
+      const reach = state.view * state.view + state.view;
+      ctx.save(); ctx.beginPath();
+      for (let dy = -state.view; dy <= state.view; dy++) {
+        const half = Math.floor(Math.sqrt(reach - dy * dy)), px = edge(ox, state.x - half), py = edge(oy, state.y + dy);
+        ctx.rect(px, py, edge(ox, state.x + half + 1) - px, edge(oy, state.y + dy + 1) - py);
+      }
+      ctx.clip();
+      for (const [picture, px, py, w, h] of drawn) ctx.drawImage(picture, 0, 0, CHUNK, CHUNK, px, py, w, h);
+      ctx.restore();
+      ctx.imageSmoothingEnabled = false;
+      if (pictures.size > 3000) { const keep = new Set(blocks.map(block => block[0])); for (const key of pictures.keys()) if (!keep.has(key)) pictures.delete(key); }
+      if (more) redraw();
+    } else {
+      for (let y = y0; y <= y1; y++) {
+        const py = edge(oy, y), h = edge(oy, y + 1) - py;
+        for (let x = x0; x <= x1; x++) {
+          const px = edge(ox, x), w = edge(ox, x + 1) - px;
+          if (!isSeen(x, y)) { ctx.drawImage(fogSprite((x + y) & 1), px, py, w, h); continue; }
+          ctx.drawImage(terrainSprite(x, y), px, py, w, h);
+          if (!inView(x, y)) { ctx.fillStyle = `rgba(13, 11, 26, ${DIM})`; ctx.fillRect(px, py, w, h); }
+        }
+      }
+    }
+    for (const [, , cx, cy] of blocks) {
+      for (const [x, y, feature] of marksOf(cx, cy)) {
+        if (!shows(x, y, feature)) continue;
+        const [px, py, s] = box(x, y);
+        ctx.drawImage(markSprite(feature), px, py, s, s);
+      }
+    }
+    ctx.fillStyle = '#FFCF4A';
+    if (state.path) for (const [x, y] of state.path.slice(0, -1)) {
+      const px = edge(ox, x), py = edge(oy, y), w = edge(ox, x + 1) - px, dot = Math.max(2, Math.round(w / 4));
+      ctx.fillRect(px + Math.round((w - dot) / 2), py + Math.round((w - dot) / 2), dot, dot);
+    }
+    const [hx, hy, hs] = box(state.x, state.y);
+    ctx.drawImage(heroSprite(), hx, hy, hs, hs);
+    if (state.sel.x !== state.x || state.sel.y !== state.y) {
+      const [px, py, w] = box(state.sel.x, state.sel.y);
+      const t = Math.max(2, Math.round(w / 8)), arm = Math.max(t, Math.round(w * 3 / 8));
+      for (const [cx, cy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+        ctx.fillRect(px + cx * (w - arm), py + cy * (w - t), arm, t);
+        ctx.fillRect(px + cx * (w - t), py + cy * (w - arm), t, arm);
+      }
+    }
+  }
+  // Redraws once per frame however many finger moves arrive.
+  let queued = false;
+  function redraw() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; draw(); });
+  }
+
+  const num = n => n.toLocaleString('en-GB');
+  const el = id => document.getElementById(id);
+
+  function describe() {
+    const { x, y } = state.sel;
+    const here = x === state.x && y === state.y;
+    el('steps').textContent = num(state.steps);
+    el('cost').textContent = `${state.cost} steps`;
+    el('far').textContent = `${num(Math.round(tilesFromTown(state.x, state.y) * state.cost))} steps`;
+    el('view').textContent = state.view;
+    el('speed').textContent = state.cost;
+    if (!isSeen(x, y)) {
+      el('tile-name').textContent = 'Unknown land';
+      el('tile-level').textContent = '';
+      el('tile-text').textContent = 'Still under fog. Walk closer to uncover it.';
+      el('tile-extra').textContent = '';
+      el('tile-action').innerHTML = '<div class="locked">Uncover this tile first</div>';
+      return;
+    }
+    const biome = BIOMES[biomeAt(x, y)];
+    const feature = featureAt(x, y);
+    const visible = feature && shows(x, y, feature) ? feature : null;
+    let name = biome.name, text = biome.walk ? 'Wild land. Mobs roam here.' : 'Cannot be crossed. Find a way around.', extra = '';
+    if (visible) {
+      if (visible.kind === 'town') { name = `${visible.name}`; text = 'A town: vendors, quests, a safe place to rest.'; extra = 'Towns are placed by the world, about one per region.'; }
+      if (visible.kind === 'grave') { name = 'Graveyard'; text = 'If you fall nearby, your ghost wakes here and walks back.'; }
+      if (visible.kind === 'dungeon') { name = visible.name; text = 'A dungeon with a boss and its own loot.'; extra = 'Guaranteed: every pie slice of the world has one.'; }
+      if (visible.kind === 'elite') { name = 'Rare elite'; text = 'Much stronger than the mobs around it. Always drops rare gear or better.'; extra = 'Shows up for a while, then moves on.'; }
+      if (visible.kind === 'chest') {
+        name = `${RARITIES[visible.rarity]} chest`;
+        text = visible.guarded ? 'Guarded. Beat the mobs around it to open it.' : 'Unguarded. Walk up and open it.';
+        extra = 'Gear, materials, recipes or consumables.';
+      }
+    }
+    el('tile-name').textContent = name;
+    el('tile-level').textContent = biome.walk && !(visible && visible.kind === 'town') ? `Mobs LV ${levelAt(x, y)}` : '';
+    el('tile-text').textContent = text;
+    el('tile-extra').textContent = extra;
+    const action = el('tile-action');
+    if (here) action.innerHTML = '<div class="locked">You are here</div>';
+    else if (!biome.walk) action.innerHTML = '<div class="locked">Cannot walk here</div>';
+    else if (state.far) action.innerHTML = '<div class="locked">Too far to plan in one go. Pick a closer spot</div>';
+    else if (!state.path) action.innerHTML = '<div class="locked">No uncovered route yet. Explore around it</div>';
+    else {
+      const need = state.path.length * state.cost;
+      action.innerHTML = need > state.steps
+        ? `<div class="locked">Needs ${num(need)} steps. You have ${num(state.steps)}</div>`
+        : `<button class="btn primary" id="walk">Walk here: ${num(need)} steps</button>`;
+    }
+  }
+
+  function refresh() { draw(); describe(); }
+  const follow = () => { cam.x = state.x + 0.5; cam.y = state.y + 0.5; };
+
+  function select(x, y) {
+    if (state.walking) return;
+    if (x === state.sel.x && y === state.sel.y && state.path && state.path.length) { walk(); return; }
+    state.sel = { x, y };
+    state.path = findPath(x, y);
+    refresh();
+  }
+
+  // The walk is played back in about two seconds however long it is.
+  function walk() {
+    if (state.walking || !state.path || !state.path.length || state.path.length * state.cost > state.steps) return;
+    const path = state.path.slice(), total = path.length;
+    const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : Math.min(2200, total * 80);
+    const began = performance.now();
+    let done = 0;
+    state.walking = true;
+    const frame = now => {
+      const target = duration ? Math.min(total, Math.max(done + 1, Math.floor((now - began) / duration * total))) : total;
+      while (done < target) {
+        [state.x, state.y] = path[done++];
+        state.steps -= state.cost;
+        reveal();
+      }
+      state.path = path.slice(done); follow();
+      if (done < total) { refresh(); requestAnimationFrame(frame); return; }
+      state.walking = false; state.path = null; state.sel = { x: state.x, y: state.y };
+      remember(); refresh();
+    };
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Fingers: one drags the map, two pinch to zoom, a tap picks a tile.
+  const nearestZoom = z => ZOOMS.reduce((best, level) => Math.abs(Math.log(level / z)) < Math.abs(Math.log(best / z)) ? level : best);
+  // Changes the zoom while keeping the spot under the fingers where it is.
+  function zoomAt(z, clientX, clientY) {
+    const box = canvas.getBoundingClientRect();
+    const sx = clientX - box.left - box.width / 2, sy = clientY - box.top - box.height / 2;
+    const wx = cam.x + sx / (cam.z * TILE), wy = cam.y + sy / (cam.z * TILE);
+    cam.z = Math.max(ZOOMS[0], Math.min(ZOOMS[ZOOMS.length - 1], z));
+    cam.x = wx - sx / (cam.z * TILE); cam.y = wy - sy / (cam.z * TILE);
+    redraw();
+  }
+  function zoomStep(by, clientX, clientY) {
+    const box = canvas.getBoundingClientRect();
+    const level = ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, ZOOMS.indexOf(nearestZoom(cam.z)) + by))];
+    zoomAt(level, clientX ?? box.left + box.width / 2, clientY ?? box.top + box.height / 2);
+  }
+  // The tile under a finger. Zoomed out, tiles are smaller than a fingertip, so a tap near a mark picks the mark.
+  function tileAt(clientX, clientY) {
+    const box = canvas.getBoundingClientRect(), tile = cam.z * TILE;
+    const tx = Math.floor(cam.x + (clientX - box.left - box.width / 2) / tile), ty = Math.floor(cam.y + (clientY - box.top - box.height / 2) / tile);
+    if (tile >= 16) return [tx, ty];
+    const reach = Math.ceil(14 / tile);
+    let best = [tx, ty], nearest = reach * reach + 1;
+    for (let cy = (ty - reach) >> 5; cy <= (ty + reach) >> 5; cy++) for (let cx = (tx - reach) >> 5; cx <= (tx + reach) >> 5; cx++) {
+      if (!seen.has(chunkKey(cx, cy))) continue;
+      for (const [x, y, feature] of marksOf(cx, cy)) {
+        const gap = (x - tx) * (x - tx) + (y - ty) * (y - ty);
+        if (gap < nearest && shows(x, y, feature)) { nearest = gap; best = [x, y]; }
+      }
+    }
+    return best;
+  }
+
+  const fingers = new Map();
+  let touch = null;   // { moved, sx, sy, spread, z } for the gesture in progress
+  const middle = () => { const all = [...fingers.values()]; return { x: all.reduce((a, f) => a + f.x, 0) / all.length, y: all.reduce((a, f) => a + f.y, 0) / all.length }; };
+  const spread = () => { const [a, b] = [...fingers.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
+
+  canvas.addEventListener('pointerdown', event => {
+    try { canvas.setPointerCapture(event.pointerId); } catch { /* not a real finger */ }
+    fingers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (fingers.size === 1) touch = { moved: false, sx: event.clientX, sy: event.clientY };
+    else if (fingers.size === 2) Object.assign(touch, { moved: true, spread: spread(), z: cam.z });
+  });
+  canvas.addEventListener('pointermove', event => {
+    const finger = fingers.get(event.pointerId);
+    if (!finger || !touch) return;
+    const before = middle();
+    finger.x = event.clientX; finger.y = event.clientY;
+    if (!touch.moved && Math.hypot(event.clientX - touch.sx, event.clientY - touch.sy) < 8) return;
+    touch.moved = true;
+    const after = middle();
+    cam.x -= (after.x - before.x) / (cam.z * TILE); cam.y -= (after.y - before.y) / (cam.z * TILE);
+    if (fingers.size === 2) zoomAt(touch.z * spread() / touch.spread, after.x, after.y);
+    else redraw();
+  });
+  function lift(event) {
+    if (!fingers.has(event.pointerId) || !touch) return;
+    const at = middle();
+    fingers.delete(event.pointerId);
+    if (fingers.size) return;
+    const tapped = !touch.moved && event.type === 'pointerup';
+    touch = null;
+    if (tapped) select(...tileAt(event.clientX, event.clientY));
+    else zoomAt(nearestZoom(cam.z), at.x, at.y);   // settle on a whole zoom level so the art stays crisp
+  }
+  canvas.addEventListener('pointerup', lift);
+  canvas.addEventListener('pointercancel', lift);
+  canvas.addEventListener('wheel', event => { event.preventDefault(); zoomStep(event.deltaY < 0 ? 1 : -1, event.clientX, event.clientY); }, { passive: false });
+  for (const name of ['gesturestart', 'gesturechange']) canvas.addEventListener(name, event => event.preventDefault());
+
+  canvas.addEventListener('keydown', event => {
+    const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    if (moves[event.key]) {
+      event.preventDefault();
+      if (state.walking) return;
+      state.sel = { x: state.sel.x + moves[event.key][0], y: state.sel.y + moves[event.key][1] };
+      state.path = findPath(state.sel.x, state.sel.y);
+      cam.x = state.sel.x + 0.5; cam.y = state.sel.y + 0.5;
+      refresh();
+    } else if (event.key === 'Enter') { event.preventDefault(); walk(); }
+    else if (event.key === 'Escape') setFull(false);
+  });
+
+  function setFull(on) {
+    document.body.classList.toggle('full', on);
+    el('full').textContent = on ? 'Exit' : 'Full';
+    el('full').setAttribute('aria-pressed', String(on));
+    el('full').setAttribute('aria-label', on ? 'Leave full screen' : 'Full screen map');
+  }
+  el('full').addEventListener('click', () => setFull(!document.body.classList.contains('full')));
+  el('zoom-in').addEventListener('click', () => zoomStep(1));
+  el('zoom-out').addEventListener('click', () => zoomStep(-1));
+  el('find').addEventListener('click', () => { follow(); redraw(); });
+
+  el('tile-action').addEventListener('click', event => { if (event.target.id === 'walk') walk(); });
+  const changed = () => { el('reset').textContent = 'Start over'; remember(); refresh(); };
+  const turn = (list, value, by) => list[Math.max(0, Math.min(list.length - 1, list.indexOf(value) + by))];
+  el('log').addEventListener('click', () => { state.steps += 1000; changed(); });
+  el('view-less').addEventListener('click', () => { state.view = turn(VIEWS, state.view, -1); changed(); });
+  el('view-more').addEventListener('click', () => { state.view = turn(VIEWS, state.view, 1); reveal(); state.path = findPath(state.sel.x, state.sel.y); changed(); });
+  el('cost-more').addEventListener('click', () => { state.cost = turn(COSTS, state.cost, -1); changed(); });
+  el('cost-less').addEventListener('click', () => { state.cost = turn(COSTS, state.cost, 1); changed(); });
+  // The viewer shows no confirm box, so wiping the map takes two taps.
+  el('reset').addEventListener('click', () => {
+    if (el('reset').textContent === 'Start over') { el('reset').textContent = 'Tap again to wipe the map'; return; }
+    if (state.walking) return;
+    state = fresh(); seen = new Map(); cam.z = START_ZOOM;
+    reveal(); follow(); changed();
+  });
+
+  const legend = [['hero', 'You'], ['town', 'Town'], ['grave', 'Graveyard'], ['dungeon', 'Dungeon'], ['chest', 'Chest (colour = rarity)'], ['guard', 'Red mark = guarded'], ['elite', 'Rare elite']];
+  for (const [kind, label] of legend) {
+    const row = document.createElement('div');
+    const icon = document.createElement('canvas');
+    icon.width = 8; icon.height = 8;
+    const ictx = icon.getContext('2d');
+    if (kind === 'guard') drawMark(ictx, 0, 0, { kind: 'chest', rarity: 2, guarded: true });
+    else if (kind === 'chest') drawMark(ictx, 0, 0, { kind: 'chest', rarity: 1 });
+    else stamp(ictx, 0, 0, MARKS[kind].rows, MARKS[kind].palette, false);
+    const text = document.createElement('span');
+    text.textContent = label;
+    row.append(icon, text);
+    el('legend').append(row);
+  }
+
+  function resize() {
+    const box = stage.getBoundingClientRect();
+    view.dpr = Math.min(3, window.devicePixelRatio || 1);
+    view.w = canvas.width = Math.round(box.width * view.dpr);
+    view.h = canvas.height = Math.round(box.height * view.dpr);
+    ctx.imageSmoothingEnabled = false;
+    draw();
+  }
+
+  restore(); reveal(); follow(); describe();
+  new ResizeObserver(resize).observe(stage);
+  resize();
+})();
+</script>
+</body>
+</html>

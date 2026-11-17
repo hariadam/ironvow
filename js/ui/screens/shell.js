@@ -12,7 +12,7 @@ import { session, TABS } from '../session.js';
 
 const TAB_LABELS = { quests: 'Quests', hero: 'Hero', vendor: 'Vendor', adventure: 'Adventure' };
 
-// The numbers the hero bar shows. A venture freezes a copy of these while its story plays out,
+// The numbers the hero bar shows. A fight freezes a copy of these while its story plays out,
 // so the bar does not give the ending away (see screens/adventure.js).
 export const barNumbers = hero => ({ totalXp: hero.totalXp, copper: hero.copper, energy: hero.energy });
 
@@ -56,6 +56,8 @@ export const actions = {
     ui.confirmDelete = false;
     ui.exportCode = null;
     ui.pendingImport = null;
+    ui.map.sel = null;
+    ui.map.route = null;
     if (ui.battle && ui.battle.over) ui.battle = null;
     saveTab(tab);
     return () => window.scrollTo(0, 0);

@@ -6,6 +6,7 @@ import { decodeSave, encodeSave } from '../js/save/codes.js';
 import { SAVE_VERSION, SaveError, upgradeSave } from '../js/save/migrate.js';
 import { heroPower, newHero } from '../js/rules/hero.js';
 import { rollDay } from '../js/rules/day.js';
+import { isSeen, stepsLeft, walkTo } from '../js/rules/travel.js';
 
 // A hero exactly as version 1 of the game (the first release) stored it, mid-day, with gear, streaks and history.
 const V1_SAVE = {
@@ -27,13 +28,17 @@ const V1_SAVE = {
   wins: 37, updatedAt: 1794700000000,
 };
 
+// What a save written before the world map gains when it loads: a hero standing in town, nothing walked.
+const NEW_MAP = { x: 0, y: 0, walked: 0, trail: [], slain: { day: '2026-11-15', at: [] } };
+const V1_LOADED = { ...V1_SAVE, map: NEW_MAP };
+
 // How version 1 built a save code. Kept here so today's decoder is always checked against it.
 const v1Code = save => 'IRONVOW1:' + btoa(unescape(encodeURIComponent(JSON.stringify(save))));
 
 test('a version 1 save loads with nothing lost or changed', () => {
   const save = upgradeSave(V1_SAVE);
-  assert.deepEqual(save, V1_SAVE);
-  assert.notEqual(save, V1_SAVE, 'works on a copy');
+  assert.deepEqual(save, V1_LOADED, 'everything kept; only the world map is added');
+  assert.equal(V1_SAVE.map, undefined, 'works on a copy');
   assert.ok(heroPower(save) > 0);
   assert.ok(rollDay(save, '2026-11-16'));
   assert.equal(save.history['2026-11-15'], 2);
@@ -41,14 +46,25 @@ test('a version 1 save loads with nothing lost or changed', () => {
 
 test('a version 1 save code still imports, accents and line breaks included', () => {
   const code = v1Code(V1_SAVE);
-  assert.deepEqual(decodeSave(code), V1_SAVE);
-  assert.deepEqual(decodeSave(`  ${code.slice(0, 40)}\n${code.slice(40)} \n`), V1_SAVE);
+  assert.deepEqual(decodeSave(code), V1_LOADED);
+  assert.deepEqual(decodeSave(`  ${code.slice(0, 40)}\n${code.slice(40)} \n`), V1_LOADED);
 });
 
 test('codes written today read back the same, and match the version 1 format', () => {
   const hero = newHero('Zoë ⚔', 'priest', '2026-11-16');
   assert.equal(encodeSave(hero), v1Code(hero));
   assert.deepEqual(decodeSave(encodeSave(hero)), { ...hero, v: 1 });
+});
+
+test('a hero who has walked the world comes back from a save code in the same place, with the same land uncovered', () => {
+  const hero = newHero('Walker', 'ranger', '2026-11-16');
+  hero.totals.steps = 50000;
+  for (const [x, y] of [[-20, 0], [-30, 2], [0, 0], [0, 19]]) walkTo(hero, x, y);
+  assert.ok(hero.map.walked > 0 && hero.map.trail.length > 0);
+  const loaded = decodeSave(encodeSave(hero));
+  assert.deepEqual(loaded.map, hero.map);
+  assert.equal(stepsLeft(loaded), stepsLeft(hero));
+  for (let y = -60; y <= 60; y++) for (let x = -60; x <= 60; x++) assert.equal(isSeen(loaded, x, y), isSeen(hero, x, y), `${x},${y}`);
 });
 
 test('bad codes are refused with a message the player can act on', () => {
@@ -76,6 +92,7 @@ test('missing or damaged fields are filled in without touching the rest', () => 
   assert.deepEqual(save.owned, ['w0m']);
   assert.equal(save.chest, null);
   assert.deepEqual(save.progress, {});
+  assert.deepEqual(save.map, { x: 0, y: 0, walked: 0, trail: [], slain: { day: '2000-01-01', at: [] } });
 });
 
 test('upgrades run in order, one version at a time', () => {

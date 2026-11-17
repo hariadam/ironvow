@@ -1,6 +1,6 @@
 // Turns what the rules report into things the player sees and hears: toasts, the level-up banner, sounds.
 // To react to a new kind of event, add an entry to REACTIONS. Events without an entry are silent on purpose
-// (for example 'amountSet': the progress bar already shows it).
+// (for example 'amountSet': the progress bar already shows it, or 'walked': the map plays the walk back).
 
 import { STAT_NAMES } from '../content/classes.js';
 import { ITEMS } from '../content/items.js';
@@ -43,7 +43,7 @@ const REACTIONS = {
   levelUp(e) { showLevelUp(e.level); playSound('level'); },
   itemBought(e) { toast(`Bought and equipped ${ITEMS[e.itemId].name}`, 'gold'); playSound('coin'); },
   itemSold(e) { toast(`Sold ${ITEMS[e.itemId].name} for ${coinText(e.copper)}`); playSound('coin'); },
-  ventured(e) { playSound(e.won ? 'win' : 'lose'); },
+  fought(e) { playSound(e.won ? 'win' : 'lose'); },
 };
 
 export function announce(events) {

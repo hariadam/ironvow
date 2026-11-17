@@ -10,7 +10,6 @@ import { createCanvas, gridPaths } from './pixel.js';
 const W = 120;
 const H = 22;
 const SCALE = 4;
-const STRIP = { from: 4, rows: 14 };   // the slice of a scene shown for far-off zones
 
 const hexToRgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 const NIGHT_STOPS = ['#25233D', '#3E3C5C', '#6A6788', '#B8B5D0', '#E2DFD0'].map(hexToRgb);
@@ -234,8 +233,7 @@ export const SCENE_NAMES = Object.keys(SCENES);
 
 const cache = new Map();
 
-// The scene as an SVG string. mode: 'open' (dusk colours), 'locked' (night colours) or 'strip'
-// (night colours, a short slice: used for zones still far away).
+// The scene as an SVG string. mode: 'open' (dusk colours) or 'locked' (night colours).
 export function sceneSvg(name, mode) {
   const key = `${name}:${mode}`;
   if (cache.has(key)) return cache.get(key);
@@ -245,9 +243,7 @@ export function sceneSvg(name, mode) {
   scene.draw(canvas);
   const night = mode !== 'open';
   const front = night ? canvas.paths().replace(/fill="(#[0-9a-fA-F]{6})"/g, (_, hex) => `fill="${nightColor(hex)}"`) : canvas.paths();
-  const from = mode === 'strip' ? STRIP.from : 0;
-  const rows = mode === 'strip' ? STRIP.rows : H;
-  const svg = `<svg class="px" width="${W * SCALE}" height="${rows * SCALE}" viewBox="0 ${from} ${W} ${rows}" shape-rendering="crispEdges" role="img" aria-label="Pixel art of ${scene.label}${night ? ', at night' : ''}">${skyPaths(night ? NIGHT_SKY : scene.sky)}${front}</svg>`;
+  const svg = `<svg class="px" width="${W * SCALE}" height="${H * SCALE}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges" role="img" aria-label="Pixel art of ${scene.label}${night ? ', at night' : ''}">${skyPaths(night ? NIGHT_SKY : scene.sky)}${front}</svg>`;
   cache.set(key, svg);
   return svg;
 }
