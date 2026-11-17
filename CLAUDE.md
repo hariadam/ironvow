@@ -37,7 +37,15 @@ The Adventure tab is one large, procedurally generated world: the further from t
 Decided: one shared world (one seed); a tile is 10 steps; things on the map are rare. `docs/map-reference.html` is the approved mock, and holds the approved sprites and spawn numbers for chests, elites, graveyards and towns.
 Respawn design: terrain, towns, graveyards and dungeons never change; mobs are rolled per day; chests are to be rolled per week and elites per day, with the save remembering only what was taken in the current period.
 
-**Still open, ask before building step 2:** whether a dead hero may also revive at the graveyard for a penalty (so being out of steps never locks the player out); whether fights stay automatic or the player picks abilities; how HP comes back (real time, food, resting in town); what habits pay once the habit currency exists, and its name.
+**Still open. Ask the owner these before building step 2** (asked in November 2026, not answered yet; Claude's recommendation in brackets):
+1. **Graveyard revive:** may a dead hero also revive at the graveyard for a penalty, such as low HP, so a player who is out of steps is never locked out? [yes]
+2. **Fights:** do they keep playing out on their own, or does the player pick abilities each round? [automatic first, abilities later]
+3. **HP coming back:** slowly over real time, by eating food, by resting in a town, or a mix? [all three]
+4. **What habits pay** once the habit currency exists (only the currency, or the currency plus today's XP, gold and +1 stat), and the currency's name and icon. [no recommendation: the owner's call]
+
+Also for later steps: what a dungeon is (one boss fight, or a chain of fights), how hints to special dungeons work (a rumour in town, or a map item), and whether loot is generated or hand-made.
+
+Ideas Claude raised that the owner has not answered yet: give mobs below the hero's level little XP, so progress means walking further out; tie resistances to biomes (frost in snow, poison in swamp); other stats to buy: HP regen, bag space, chest luck, a cheaper ghost run.
 
 ## Running, testing and publishing
 
